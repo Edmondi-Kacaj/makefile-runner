@@ -16,7 +16,30 @@ interface CacheEntry {
 }
 
 const DEFAULT_DISCOVERY_GLOB = '**/{Makefile,makefile,GNUmakefile}';
-const DEFAULT_EXCLUDE_GLOB = '**/{.git,node_modules,dist,out,build}/**';
+const DEFAULT_EXCLUDE_DIRS = ['.git', 'node_modules', 'dist', 'out', 'build', 'venv', '.venv'];
+
+/**
+ * Builds a dynamic exclude glob from built-in defaults + user-configured excludePaths.
+ * Simple directory names (e.g. "vendor", ".tox") are merged into the brace expansion.
+ * Entries with glob characters or path separators are returned as extra patterns for
+ * post-filtering after findFiles.
+ */
+function buildExcludeInfo(config: ExtensionConfig): { excludeGlob: string; extraGlobs: string[] } {
+	const dirs = [...DEFAULT_EXCLUDE_DIRS];
+	const extraGlobs: string[] = [];
+
+	for (const raw of config.excludePaths) {
+		const p = raw.trim().replace(/^\/|\/$/, '');
+		if (!p) { continue; }
+		if (p.includes('*') || p.includes('/')) {
+			extraGlobs.push(p.startsWith('**/') ? p : `**/${p}`);
+		} else if (!dirs.includes(p)) {
+			dirs.push(p);
+		}
+	}
+
+	return { excludeGlob: `**/{${dirs.join(',')}}/**`, extraGlobs };
+}
 
 export class CacheManager {
 	private readonly parseCache = new Map<string, CacheEntry>();
@@ -67,13 +90,13 @@ export class CacheManager {
 		const entries: TargetEntry[] = [];
 
 		for (const uri of this.discoveredMakefiles.values()) {
-			const targets = await this.getTargetsForMakefile(uri);
+			const cached = await this.getCacheEntry(uri);
 			const workspaceFolder = vscode.workspace.getWorkspaceFolder(uri);
 			const relativeMakefilePath = workspaceFolder
 				? vscode.workspace.asRelativePath(uri, false)
 				: uri.fsPath;
 
-			for (const target of targets) {
+			for (const target of cached.targets) {
 				entries.push({
 					target,
 					makefileUri: uri,
@@ -86,11 +109,11 @@ export class CacheManager {
 		return entries;
 	}
 
-	private async getTargetsForMakefile(uri: vscode.Uri): Promise<string[]> {
+	private async getCacheEntry(uri: vscode.Uri): Promise<CacheEntry> {
 		const cacheKey = uri.toString();
 		const cached = this.parseCache.get(cacheKey);
 		if (cached) {
-			return cached.targets;
+			return cached;
 		}
 
 		let content: string;
@@ -99,16 +122,17 @@ export class CacheManager {
 			content = new TextDecoder().decode(bytes);
 		} catch (error) {
 			this.logger.warn(`Failed to read Makefile ${uri.fsPath}: ${error}`);
-			return [];
+			return { targets: [] };
 		}
 
 		try {
 			const parsed = parseMakefile(content);
-			this.parseCache.set(cacheKey, { targets: parsed.targets });
-			return parsed.targets;
+			const entry: CacheEntry = { targets: parsed.targets };
+			this.parseCache.set(cacheKey, entry);
+			return entry;
 		} catch (error) {
 			this.logger.warn(`Failed to parse Makefile ${uri.fsPath}: ${error}`);
-			return [];
+			return { targets: [] };
 		}
 	}
 }
@@ -121,13 +145,29 @@ async function discoverMakefiles(config: ExtensionConfig, logger: Logger): Promi
 
 	const discovered = new Map<string, vscode.Uri>();
 
+	const { excludeGlob, extraGlobs } = buildExcludeInfo(config);
+
 	for (const folder of folders) {
 		const discoveredUris = await vscode.workspace.findFiles(
 			new vscode.RelativePattern(folder, DEFAULT_DISCOVERY_GLOB),
-			DEFAULT_EXCLUDE_GLOB,
+			excludeGlob,
 		);
 
 		for (const uri of discoveredUris) {
+			// Post-filter against any full-glob excludes
+			if (extraGlobs.length > 0) {
+				const rel = vscode.workspace.asRelativePath(uri, false);
+				const excluded = extraGlobs.some((g) => {
+					// Simple minimatch-like check: convert glob to regex
+					const re = new RegExp(
+						'^' + g.replace(/\./g, '\\.').replace(/\*\*/g, '.*').replace(/\*/g, '[^/]*') + '$',
+					);
+					return re.test(rel);
+				});
+				if (excluded) {
+					continue;
+				}
+			}
 			discovered.set(uri.toString(), uri);
 		}
 

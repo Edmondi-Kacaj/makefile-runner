@@ -9,17 +9,17 @@ export function createLogger(isDebugEnabled: () => boolean): Logger {
 	return {
 		debug(message: string) {
 			if (isDebugEnabled()) {
-				console.debug(`[makefile-target-runner] ${message}`);
+				console.debug(`[makefile-runner] ${message}`);
 			}
 		},
 		info(message: string) {
-			console.info(`[makefile-target-runner] ${message}`);
+			console.info(`[makefile-runner] ${message}`);
 		},
 		warn(message: string) {
-			console.warn(`[makefile-target-runner] ${message}`);
+			console.warn(`[makefile-runner] ${message}`);
 		},
 		error(message: string) {
-			console.error(`[makefile-target-runner] ${message}`);
+			console.error(`[makefile-runner] ${message}`);
 		},
 	};
 }

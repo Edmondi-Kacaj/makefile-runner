@@ -1,28 +1,38 @@
 import * as vscode from 'vscode';
 
-export type UiMode = 'quickPick' | 'treeView';
-
 export interface ExtensionConfig {
 	makefilePaths: string[];
+	excludePaths: string[];
 	autoRefresh: boolean;
-	groupByWorkspace: boolean;
+	groupBy: 'none' | 'workspace' | 'makefile';
+	showPrivateTargets: boolean;
+	terminalReuse: boolean;
 	defaultMakefileTemplate?: unknown;
-	uiMode: UiMode;
+	showQuickPick: boolean;
+	showTreeView: boolean;
 	debug: boolean;
 }
 
-const SECTION = 'makefileTargetRunner';
+const SECTION = 'makefileRunner';
 
 export function getConfig(scope?: vscode.ConfigurationScope): ExtensionConfig {
 	const configuration = vscode.workspace.getConfiguration(SECTION, scope);
-	const uiModeValue = configuration.get<string>('uiMode', 'quickPick');
+	const legacyGroupByWorkspace = configuration.get<boolean>('groupByWorkspace', false);
+	const groupBy = configuration.get<'none' | 'workspace' | 'makefile'>(
+		'groupBy',
+		legacyGroupByWorkspace ? 'workspace' : 'none',
+	);
 
 	return {
 		makefilePaths: configuration.get<string[]>('makefilePaths', []),
+		excludePaths: configuration.get<string[]>('excludePaths', []),
 		autoRefresh: configuration.get<boolean>('autoRefresh', true),
-		groupByWorkspace: configuration.get<boolean>('groupByWorkspace', false),
+		groupBy,
+		showPrivateTargets: configuration.get<boolean>('showPrivateTargets', false),
+		terminalReuse: configuration.get<boolean>('terminalReuse', true),
 		defaultMakefileTemplate: configuration.get<unknown>('defaultMakefileTemplate'),
-		uiMode: uiModeValue === 'treeView' ? 'treeView' : 'quickPick',
+		showQuickPick: configuration.get<boolean>('showQuickPick', true),
+		showTreeView: configuration.get<boolean>('showTreeView', false),
 		debug: configuration.get<boolean>('debug', false),
 	};
 }

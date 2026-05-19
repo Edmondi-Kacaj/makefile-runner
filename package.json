@@ -1,9 +1,10 @@
 {
-  "name": "makefile-target-runner",
-  "displayName": "Makefile Target Runner",
+  "name": "makefile-runner",
+  "displayName": "Makefile Runner",
   "description": "A lightweight VS Code extension that automatically discovers Makefile targets and lets you run them instantly through a searchable Quick Pick interface with live updates and multi-root workspace support.",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "publisher": "e-kacaj",
+  "icon": "images/icon.png",
   "engines": {
     "vscode": "^1.85.0"
   },
@@ -13,71 +14,142 @@
   "keywords": [
     "make",
     "makefile",
-    "build",
     "tasks",
+    "build",
     "runner",
-    "devtools"
-  ],
-  "activationEvents": [
-    "onCommand:makefileTargetRunner.quickPick",
-    "onCommand:makefileTargetRunner.refreshTargets",
-    "onCommand:makefileTargetRunner.createDefaultMakefile"
+    "automation"
   ],
   "main": "./dist/extension.js",
   "contributes": {
     "commands": [
       {
-        "command": "makefileTargetRunner.quickPick",
+        "command": "makefileRunner.quickPick",
         "title": "Makefile: Run Target"
       },
       {
-        "command": "makefileTargetRunner.refreshTargets",
+        "command": "makefileRunner.refreshTargets",
         "title": "Makefile: Refresh Targets"
       },
       {
-        "command": "makefileTargetRunner.createDefaultMakefile",
+        "command": "makefileRunner.createDefaultMakefile",
         "title": "Makefile: Create Default Makefile"
+      },
+      {
+        "command": "makefileRunner.runTarget",
+        "title": "Makefile: Run Target"
       }
     ],
     "keybindings": [
       {
-        "command": "makefileTargetRunner.quickPick",
+        "command": "makefileRunner.quickPick",
         "key": "ctrl+alt+m",
-        "mac": "cmd+alt+m"
+        "mac": "cmd+alt+m",
+        "when": "config.makefileRunner.showQuickPick == true"
       },
       {
-        "command": "makefileTargetRunner.refreshTargets",
+        "command": "makefileRunner.refreshTargets",
         "key": "ctrl+alt+shift+m",
         "mac": "cmd+alt+shift+m"
       },
       {
-        "command": "makefileTargetRunner.createDefaultMakefile",
+        "command": "makefileRunner.createDefaultMakefile",
         "key": "ctrl+alt+n",
         "mac": "cmd+alt+n"
       }
     ],
+    "menus": {
+      "commandPalette": [
+        {
+          "command": "makefileRunner.quickPick",
+          "when": "config.makefileRunner.showQuickPick == true"
+        },
+        {
+          "command": "makefileRunner.runTarget",
+          "when": "false"
+        },
+        {
+          "command": "makefileRunner.runTargetFromCommandCenter",
+          "when": "false"
+        }
+      ]
+    },
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "makefileRunner",
+          "title": "Makefile Runner",
+          "icon": "images/icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "explorer": [
+        {
+          "id": "makefileRunner.treeView",
+          "name": "Makefile Targets",
+          "when": "config.makefileRunner.showTreeView == true",
+          "icon": "images/icon.svg"
+        }
+      ],
+      "makefileRunner": [
+        {
+          "id": "makefileRunner.commandCenter",
+          "name": "Commands",
+          "icon": "images/icon.svg"
+        }
+      ]
+    },
     "configuration": {
-      "title": "Makefile Target Runner",
+      "title": "Makefile Runner",
       "properties": {
-        "makefileTargetRunner.makefilePaths": {
+        "makefileRunner.makefilePaths": {
           "type": "array",
           "default": [],
           "items": {
             "type": "string"
           },
-          "description": "Additional Makefile paths or glob patterns to include in discovery."
+          "description": "Additional Makefile paths or glob patterns to include in discovery (e.g. \"infra/Makefile\" or \"**/docker/Makefile\")."
         },
-        "makefileTargetRunner.autoRefresh": {
+        "makefileRunner.excludePaths": {
+          "type": "array",
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "description": "Folder names or glob patterns to exclude from Makefile discovery. Simple names like \".venv\" or \"vendor\" are merged with the built-in excludes (.git, node_modules, dist …). Full globs like \"**/docs/**\" are also supported."
+        },
+        "makefileRunner.autoRefresh": {
           "type": "boolean",
           "default": true,
           "description": "Automatically refresh cached targets when Makefile change."
         },
-        "makefileTargetRunner.groupByWorkspace": {
+        "makefileRunner.groupBy": {
+          "type": "string",
+          "default": "none",
+          "enum": [
+            "none",
+            "workspace",
+            "makefile"
+          ],
+          "description": "How to group targets in Quick Pick. Use 'none' for a flat list, 'workspace' to group by workspace folder, or 'makefile' to group by Makefile path."
+        },
+        "makefileRunner.showPrivateTargets": {
           "type": "boolean",
           "default": false,
-          "description": "Group quick pick targets by workspace folder."
+          "description": "Show targets starting with '_' in Quick Pick."
         },
-        "makefileTargetRunner.defaultMakefileTemplate": {
+        "makefileRunner.terminalReuse": {
+          "type": "boolean",
+          "default": true,
+          "description": "Reuse an existing terminal per workspace when running targets."
+        },
+        "makefileRunner.groupByWorkspace": {
+          "type": "boolean",
+          "default": false,
+          "markdownDeprecationMessage": "Deprecated in favor of `makefileRunner.groupBy`. If enabled, it is treated as `groupBy: workspace` when `groupBy` is not set.",
+          "description": "Deprecated: use makefileRunner.groupBy instead."
+        },
+        "makefileRunner.defaultMakefileTemplate": {
           "default": {
             "build": "@echo \"Build step\"",
             "test": "@echo \"Test step\"",
@@ -96,31 +168,32 @@
           ],
           "description": "Template used when creating a new Makefile. Can be a raw string or an object of target-to-command values."
         },
-        "makefileTargetRunner.uiMode": {
-          "type": "string",
-          "default": "quickPick",
-          "enum": [
-            "quickPick",
-            "treeView"
-          ],
-          "description": "UI mode used by the extension. quickPick is currently implemented."
+        "makefileRunner.showQuickPick": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show the Quick Pick command and shortcut for selecting a Makefile target to run."
         },
-        "makefileTargetRunner.debug": {
+        "makefileRunner.showTreeView": {
           "type": "boolean",
           "default": false,
-          "description": "Enable verbose debug logging for Makefile Target Runner."
+          "description": "Show Makefile targets in a tree view in the Explorer sidebar."
+        },
+        "makefileRunner.debug": {
+          "type": "boolean",
+          "default": false,
+          "description": "Enable verbose debug logging for Makefile Runner."
         }
       }
     }
   },
   "repository": {
     "type": "git",
-    "url": "https://gitlab.com/e.kacaj/makefile-target-runner"
+    "url": "https://gitlab.com/e.kacaj/makefile-runner"
   },
   "bugs": {
-    "url": "https://gitlab.com/e.kacaj/makefile-target-runner/-/issues"
+    "url": "https://gitlab.com/e.kacaj/makefile-runner/-/issues"
   },
-  "homepage": "https://gitlab.com/e.kacaj/makefile-target-runner",
+  "homepage": "https://gitlab.com/e.kacaj/makefile-runner",
   "author": {
     "name": "Edmond Kacaj",
     "email": "info@edmondkacaj.com"
