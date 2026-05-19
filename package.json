@@ -1,0 +1,158 @@
+{
+  "name": "makefile-target-runner",
+  "displayName": "Makefile Target Runner",
+  "description": "A lightweight VS Code extension that automatically discovers Makefile targets and lets you run them instantly through a searchable Quick Pick interface with live updates and multi-root workspace support.",
+  "version": "0.0.1",
+  "publisher": "e-kacaj",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "keywords": [
+    "make",
+    "makefile",
+    "build",
+    "tasks",
+    "runner",
+    "devtools"
+  ],
+  "activationEvents": [
+    "onCommand:makefileTargetRunner.quickPick",
+    "onCommand:makefileTargetRunner.refreshTargets",
+    "onCommand:makefileTargetRunner.createDefaultMakefile"
+  ],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "makefileTargetRunner.quickPick",
+        "title": "Makefile: Run Target"
+      },
+      {
+        "command": "makefileTargetRunner.refreshTargets",
+        "title": "Makefile: Refresh Targets"
+      },
+      {
+        "command": "makefileTargetRunner.createDefaultMakefile",
+        "title": "Makefile: Create Default Makefile"
+      }
+    ],
+    "keybindings": [
+      {
+        "command": "makefileTargetRunner.quickPick",
+        "key": "ctrl+alt+m",
+        "mac": "cmd+alt+m"
+      },
+      {
+        "command": "makefileTargetRunner.refreshTargets",
+        "key": "ctrl+alt+shift+m",
+        "mac": "cmd+alt+shift+m"
+      },
+      {
+        "command": "makefileTargetRunner.createDefaultMakefile",
+        "key": "ctrl+alt+n",
+        "mac": "cmd+alt+n"
+      }
+    ],
+    "configuration": {
+      "title": "Makefile Target Runner",
+      "properties": {
+        "makefileTargetRunner.makefilePaths": {
+          "type": "array",
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "description": "Additional Makefile paths or glob patterns to include in discovery."
+        },
+        "makefileTargetRunner.autoRefresh": {
+          "type": "boolean",
+          "default": true,
+          "description": "Automatically refresh cached targets when Makefile change."
+        },
+        "makefileTargetRunner.groupByWorkspace": {
+          "type": "boolean",
+          "default": false,
+          "description": "Group quick pick targets by workspace folder."
+        },
+        "makefileTargetRunner.defaultMakefileTemplate": {
+          "default": {
+            "build": "@echo \"Build step\"",
+            "test": "@echo \"Test step\"",
+            "clean": "@echo \"Clean step\""
+          },
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "object",
+              "additionalProperties": {
+                "type": "string"
+              }
+            }
+          ],
+          "description": "Template used when creating a new Makefile. Can be a raw string or an object of target-to-command values."
+        },
+        "makefileTargetRunner.uiMode": {
+          "type": "string",
+          "default": "quickPick",
+          "enum": [
+            "quickPick",
+            "treeView"
+          ],
+          "description": "UI mode used by the extension. quickPick is currently implemented."
+        },
+        "makefileTargetRunner.debug": {
+          "type": "boolean",
+          "default": false,
+          "description": "Enable verbose debug logging for Makefile Target Runner."
+        }
+      }
+    }
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://gitlab.com/e.kacaj/makefile-target-runner"
+  },
+  "bugs": {
+    "url": "https://gitlab.com/e.kacaj/makefile-target-runner/-/issues"
+  },
+  "homepage": "https://gitlab.com/e.kacaj/makefile-target-runner",
+  "author": {
+    "name": "Edmond Kacaj",
+    "email": "info@edmondkacaj.com"
+  },
+  "license": "MIT",
+  "scripts": {
+    "vscode:prepublish": "npm run package",
+    "compile": "npm run check-types && npm run lint && node esbuild.js",
+    "watch": "npm-run-all -p watch:*",
+    "watch:esbuild": "node esbuild.js --watch",
+    "watch:tsc": "tsc --noEmit --watch --project tsconfig.json",
+    "package": "npm run check-types && npm run lint && node esbuild.js --production",
+    "compile-tests": "tsc -p . --outDir out",
+    "watch-tests": "tsc -p . -w --outDir out",
+    "pretest": "npm run compile-tests && npm run compile && npm run lint",
+    "check-types": "tsc --noEmit",
+    "lint": "eslint src",
+    "test": "vscode-test",
+    "deploy": "vsce publish"
+  },
+  "devDependencies": {
+    "@types/jest": "^30.0.0",
+    "@types/mocha": "^10.0.10",
+    "@types/node": "22.x",
+    "@types/vscode": "^1.85.0",
+    "@vscode/test-cli": "^0.0.12",
+    "@vscode/test-electron": "^2.5.2",
+    "@vscode/vsce": "^3.9.1",
+    "esbuild": "^0.27.3",
+    "eslint": "^9.39.3",
+    "npm-run-all": "^4.1.5",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.56.1"
+  }
+}
