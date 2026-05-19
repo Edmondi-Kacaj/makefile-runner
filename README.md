@@ -88,6 +88,18 @@ You can also install from VS Code UI:
 3. Select `Install from VSIX...`.
 4. Pick the generated `.vsix` file.
 
+## CI (GitLab)
+
+The repository includes a GitLab CI pipeline in `.gitlab-ci.yml`.
+
+- `test` stage:
+Runs extension tests with `npm run test` in a headless Linux setup (`xvfb`).
+
+- `deploy` stage:
+Runs `npm run deploy` only for Git tags.
+
+To publish from CI, configure the required VS Code Marketplace credentials in GitLab CI/CD variables.
+
 ## License
 
 MIT

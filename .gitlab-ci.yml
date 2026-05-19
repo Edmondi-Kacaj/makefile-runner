@@ -1,16 +1,27 @@
-image: node:12-buster
+image: node:22-bookworm
+
+stages:
+  - test
+  - deploy
+
+cache:
+  key: ${CI_COMMIT_REF_SLUG}
+  paths:
+    - node_modules/
 
 before_script:
-  - npm install
+  - npm ci
 
 test:
+  stage: test
   script:
     - |
-      apt update
-      apt install -y libasound2 libgbm1 libgtk-3-0 libnss3 xvfb
+      apt-get update
+      apt-get install -y libasound2 libgbm1 libgtk-3-0 libnss3 xvfb
       xvfb-run -a npm run test
 
 deploy:
+  stage: deploy
   only:
     - tags
   script:
