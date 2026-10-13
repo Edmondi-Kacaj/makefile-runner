@@ -2,7 +2,7 @@
   "name": "makefile-task-runner",
   "displayName": "Makefile Task Runner",
   "description": "A lightweight VS Code extension that automatically discovers Makefile targets and lets you run them instantly through a searchable Quick Pick interface with live updates and multi-root workspace support.",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "publisher": "e-kacaj",
   "icon": "images/icon.png",
   "engines": {
