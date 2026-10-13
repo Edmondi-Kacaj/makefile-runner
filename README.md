@@ -57,3 +57,11 @@ Customize the extension using the following settings:
 ## License
 
 This extension is licensed under the MIT License.
+
+
+
+---
+
+<a href="https://www.buymeacoffee.com/edka" target="_blank">
+  <img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me a Coffee" height="50">
+</a>
